@@ -233,6 +233,28 @@ func (c *Template) buildHTTP() {
 		httpBlock = append(httpBlock, buildDirective("proxy_pass_header", "Server"))
 	}
 
+	for _, ip := range cfg.BlockCIDRs {
+		httpBlock = append(httpBlock, buildDirective("deny", strings.Trim(ip, " ")))
+	}
+
+	if len(cfg.BlockUserAgents) > 0 {
+		uaMap := make(ngx_crossplane.Directives, 0)
+		for _, ua := range cfg.BlockUserAgents {
+			uaMap = append(uaMap, buildDirective(strings.Trim(ua, " "), "1"))
+		}
+		uaMap = append(uaMap, buildDirective("default", "0"))
+		httpBlock = append(httpBlock, buildMapDirective("$http_user_agent", "$block_ua", uaMap))
+	}
+
+	if len(cfg.BlockReferers) > 0 {
+		brMap := make(ngx_crossplane.Directives, 0)
+		for _, ref := range cfg.BlockReferers {
+			brMap = append(brMap, buildDirective(strings.Trim(ref, " "), "1"))
+		}
+		brMap = append(brMap, buildDirective("default", "0"))
+		httpBlock = append(httpBlock, buildMapDirective("$http_referer", "$block_ref", brMap))
+	}
+
 	c.config.Parsed = append(c.config.Parsed, &ngx_crossplane.Directive{
 		Directive: "http",
 		Block:     httpBlock,
